@@ -5,16 +5,6 @@ import cookie from 'cookie-cutter';
 import '../styles/style.scss';
 
 class SmartBanner extends Component {
-  constructor(props) {
-    super(props);
-
-    this.state = {
-      type: '',
-      appId: '',
-      settings: {},
-    };
-  }
-
   static propTypes = {
     daysHidden: PropTypes.number,
     daysReminder: PropTypes.number,
@@ -51,6 +41,16 @@ class SmartBanner extends Component {
     title: '',
     author: '',
   };
+
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      type: '',
+      appId: '',
+      settings: {},
+    };
+  }
 
   componentWillMount() {
     this.setType(this.props.force);
@@ -92,28 +92,6 @@ class SmartBanner extends Component {
     });
   }
 
-  parseAppId() {
-    const meta = window.document.querySelector(
-      `meta[name="${this.state.settings.appMeta}"]`);
-
-    if (!meta) {
-      return '';
-    }
-
-    let appId = '';
-    if (this.state.type === 'windows') {
-      appId = meta.getAttribute('content');
-    } else {
-      appId = /app-id=([^\s,]+)/.exec(meta.getAttribute('content'))[1];
-    }
-
-    this.setState({
-      appId,
-    });
-
-    return appId;
-  }
-
   setSettingsByType() {
     const mixins = {
       ios: {
@@ -151,11 +129,34 @@ class SmartBanner extends Component {
     });
   }
 
-  hide() {
+  parseAppId() {
+    const meta = window.document.querySelector(
+      `meta[name="${this.state.settings.appMeta}"]`);
+
+    if (!meta) {
+      return '';
+    }
+
+    let appId = '';
+
+    if (this.state.type === 'windows') {
+      appId = meta.getAttribute('content');
+    } else {
+      appId = /app-id=([^\s,]+)/.exec(meta.getAttribute('content'))[1];
+    }
+
+    this.setState({
+      appId,
+    });
+
+    return appId;
+  }
+
+  hide = () => {
     window.document.querySelector('html').classList.remove('smartbanner-show');
   }
 
-  show() {
+  show = () => {
     window.document.querySelector('html').classList.add('smartbanner-show');
   }
 
@@ -224,17 +225,17 @@ class SmartBanner extends Component {
     };
 
     return (
-      <div className={wrapperClassName}>
+      <div className={ wrapperClassName }>
         <div className="smartbanner-container">
-          <a className="smartbanner-close" onClick={::this.close}>&times;</a>
-          <span className="smartbanner-icon" style={iconStyle}></span>
+          <a className="smartbanner-close" onClick={ this.close }>&times;</a>
+          <span className="smartbanner-icon" style={ iconStyle } />
           <div className="smartbanner-info">
             <div className="smartbanner-title">{this.props.title}</div>
             <div>{this.props.author}</div>
             <span>{inStore}</span>
           </div>
 
-          <a href={link} onClick={::this.install} className="smartbanner-button">
+          <a href={ link } onClick={ this.install } className="smartbanner-button">
             <span className="smartbanner-button-text">{this.props.button}</span>
           </a>
         </div>
