@@ -1,8 +1,9 @@
 import React, { Component, PropTypes } from 'react';
-import ua from 'ua-parser-js';
-import cookie from 'cookie-cutter';
-
 import '../styles/style.scss';
+
+const isClient = typeof window !== 'undefined';
+let ua;
+let cookie;
 
 class SmartBanner extends Component {
   static propTypes = {
@@ -22,8 +23,8 @@ class SmartBanner extends Component {
   static defaultProps = {
     daysHidden: 15,
     daysReminder: 90,
-    appStoreLanguage: window.navigator.language.slice(-2) ||
-      window.navigator.userLanguage.slice(-2) || 'us',
+    appStoreLanguage: isClient ? (window.navigator.language.slice(-2) ||
+      window.navigator.userLanguage.slice(-2) || 'us') : 'us',
     button: 'View',
     storeText: {
       ios: 'On the App Store',
@@ -45,6 +46,11 @@ class SmartBanner extends Component {
   constructor(props) {
     super(props);
 
+    if (!__SERVER__) {
+      ua = require('ua-parser-js'); // eslint-disable-line global-require
+      cookie = require('cookie-cutter'); // eslint-disable-line global-require
+    }
+
     this.state = {
       type: '',
       appId: '',
@@ -63,24 +69,27 @@ class SmartBanner extends Component {
   }
 
   setType(deviceType) {
-    const agent = ua(window.navigator.userAgent);
-    let type = '';
+    let type = 'android';
 
-    if (deviceType) { // force set case
-      type = deviceType;
-    } else if (agent.os.name === 'Windows Phone' || agent.os.name === 'Windows Mobile') {
-      type = 'windows';
-    // iOS >= 6 has native support for Smart Banner
-    } else if (agent.os.name === 'iOS'
-      && (this.props.ignoreIosVersion
-        || parseInt(agent.os.version, 10) < 6
-        || agent.browser.name !== 'Mobile Safari')
-    ) {
-      type = 'ios';
-    } else if (agent.device.vender === 'Amazon' || agent.browser.name === 'Silk') {
-      type = 'kindle';
-    } else if (agent.os.name === 'Android') {
-      type = 'android';
+    if (isClient) {
+      const agent = ua(window.navigator.userAgent);
+
+      if (deviceType) { // force set case
+        type = deviceType;
+      } else if (agent.os.name === 'Windows Phone' || agent.os.name === 'Windows Mobile') {
+        type = 'windows';
+      // iOS >= 6 has native support for Smart Banner
+      } else if (agent.os.name === 'iOS'
+        && (this.props.ignoreIosVersion
+          || parseInt(agent.os.version, 10) < 6
+          || agent.browser.name !== 'Mobile Safari')
+      ) {
+        type = 'ios';
+      } else if (agent.device.vender === 'Amazon' || agent.browser.name === 'Silk') {
+        type = 'kindle';
+      } else if (agent.os.name === 'Android') {
+        type = 'android';
+      }
     }
 
     this.setState({
@@ -130,6 +139,10 @@ class SmartBanner extends Component {
   }
 
   parseAppId() {
+    if (!isClient) {
+      return '';
+    }
+
     const meta = window.document.querySelector(
       `meta[name="${this.state.settings.appMeta}"]`);
 
@@ -153,11 +166,15 @@ class SmartBanner extends Component {
   }
 
   hide = () => {
-    window.document.querySelector('html').classList.remove('smartbanner-show');
+    if (isClient) {
+      window.document.querySelector('html').classList.remove('smartbanner-show');
+    }
   }
 
   show = () => {
-    window.document.querySelector('html').classList.add('smartbanner-show');
+    if (isClient) {
+      window.document.querySelector('html').classList.add('smartbanner-show');
+    }
   }
 
   close() {
@@ -182,13 +199,15 @@ class SmartBanner extends Component {
       ${this.props.price[this.state.type]} - ${this.props.storeText[this.state.type]}`;
     let icon;
 
-    for (let i = 0, max = this.state.settings.iconRels.length; i < max; i++) {
-      const rel = window.document.querySelector(
-        `link[rel="${this.state.settings.iconRels[i]}"]`);
+    if (isClient) {
+      for (let i = 0, max = this.state.settings.iconRels.length; i < max; i++) {
+        const rel = window.document.querySelector(
+          `link[rel="${this.state.settings.iconRels[i]}"]`);
 
-      if (rel) {
-        icon = rel.getAttribute('href');
-        break;
+        if (rel) {
+          icon = rel.getAttribute('href');
+          break;
+        }
       }
     }
 
@@ -200,6 +219,10 @@ class SmartBanner extends Component {
   }
 
   render() {
+    if (!isClient) {
+      return <div />;
+    }
+
     // Don't show banner when:
     // 1) if device isn't iOS or Android
     // 2) website is loaded in app,
@@ -209,11 +232,11 @@ class SmartBanner extends Component {
       || window.navigator.standalone
       || cookie.get('smartbanner-closed')
       || cookie.get('smartbanner-installed')) {
-      return null;
+      return <div />;
     }
 
     if (!this.state.appId) {
-      return null;
+      return <div />;
     }
 
     this.show();
